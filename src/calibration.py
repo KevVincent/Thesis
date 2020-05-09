@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import image_undistortion as cm
 
+
 camera_matrix, dist_coef = cm.calibrate()
 
 def CameraCalibration(mtx, dist):
@@ -42,5 +43,14 @@ def TwoD2ThreeD(x,y, inverse):
 	x = three[0]/three[2]
 	y = three[1]/three[2]
 	return x, y
+def Points(image):
+	x_point = []
+	y_point = []
+	inverse = CameraCalibration(camera_matrix, dist_coef)
+	nonzeros = np.nonzero(image)
+	for i in range(len(nonzeros[0])):
+		x, y = TwoD2ThreeD(nonzeros[1][i], nonzeros[1][i], inverse)
+		x_point.append(x)
+		y_point.append(y)
+	return x_point, y_point
 
-inverse = CameraCalibration(camera_matrix, dist_coef)

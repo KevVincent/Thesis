@@ -6,9 +6,12 @@ import argparse
 import numpy as np 
 import matplotlib.pyplot as plt 
 from sensor_msgs.msg import Image
+from std_msgs.msg import Float64MultiArray
 from cv_bridge import CvBridge, CvBridgeError	
 import image_undistortion as undistort
-import Kalman as k
+import Kalman as K
+import calibration as C
+from msg import worldpoints
 #import prediction as pred 
 #import segmentation_models.segmentation_models as sm 
 """
@@ -64,33 +67,44 @@ class LaneDetector(object):
 		self.model = pred(self.weight_path, self.backbone, self.encoder_frozen)
 		print('Model ready')
 		self.bridge = CvBridge()
+
 		self.mask_pub = rospy.Publisher("mask_topic", Image)
+		self.image_sub = rospy.Subscriber("image_topic_2",Image,self.frame2mask)
+		self.world_coords = rospy.Publisher('chatter2', Float64MultiArray, queue_size=10)
+		self.three_D_points = rospy.Publisher("3Dpoints", worldpoints)
+		self.worldpoints = worldpoints()
 		self.kalman_flag = False
 
-	def frame2mask(self):
+	def frame2mask(self, data):
 		"""
 		This function captures frames from camera and feeds to model(code-prediction.py)
 		"""
 
-		self.video = cv2.VideoCapture(1)
+	    try:
+	    	print('Receiving frames')
+	    	self.frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
+	    except CvBridgeError as e:
+	    	print('Error in receiving images')
+	    	print(e)
 		self.K, self.D = undistort.calibrate()#camera matrix and distortion matrix of the camera used for undistortion of frames
-		print('Camera capturing....')
-		print('Publishing resulting mask to topic /mask_topic')
-		while self.video.isOpened():
-			_, self.frame = self.video.read()
-			self.frame = undistort.undistort(self.frame, self.K, self.D)#frames undistorting
-			self.mask = self.model.prediction()
-			self.nonzero = np.nonzero(self.mask)#stores nonzeros indices
-			if ( len(nonzero[0])!=0) & (len(nonzero[1])!=0 ):
-		    """
-		    once lane is predicted in the running session the kalman flag is set True.
-		    if kalman is called without any lane pixels to start with 'ValueError' is raised
-		    """
-				self.kalman_flag = True
-			if ( self.kalman_flag == True && self.Kalman_filter == True ):
-				self.mask = K.converter(self.mask)
-			#publishing the resuling mask to the topic
-			self.mask_pub.publish(self.bridge.cv2_to_imgmsg(self.frame, "bgr8"))
+		self.frame = undistort.undistort(self.frame, self.K, self.D)#frames undistorting
+		self.mask = self.model.prediction()
+		self.nonzero = np.nonzero(self.mask)#stores nonzeros indices
+		if ( len(nonzero[0])!=0) & (len(nonzero[1])!=0 ):
+	    """
+	    once lane is predicted in the running session the kalman flag is set True.
+	    if kalman is called without any lane pixels to start with 'ValueError' is raised
+	    """
+			self.kalman_flag = True
+		if ( self.kalman_flag == True && self.Kalman_filter == True ):
+			self.mask = K.converter(self.mask)
+		x , y = C.Points(self.mask)
+		self.worldpoints.x = x
+		self.worldpoints.y = y
+		#publishing the resuling mask to the topic
+		print('Publishing mask to topic /mask_topic')
+		self.mask_pub.publish(self.bridge.cv2_to_imgmsg(self.frame, "bgr8"))
+		self.three_D_points.publish(self.worldpoints)
 
 if __name__ == '__main__':
 	rospy.init_node('LaneDetector')
