@@ -67,7 +67,7 @@ def click_event(event, x, y, flags, param):
 			c[240:480,:]=(255,255,255)
 
 
-undis = '/home/robotics/lane_detection/src/Test image/image266.png'
+undis = '/home/robotics/lane_detection/src/Test image/image.png'
 image = cv2.imread(undis)
 c = np.zeros_like(image)
 x = cv2.imread(undis,0)
