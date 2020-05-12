@@ -10,7 +10,7 @@ from std_msgs.msg import Float64MultiArray
 from cv_bridge import CvBridge, CvBridgeError	
 import image_undistortion as undistort
 import Kalman as K
-import calibration as C
+
 from msg import worldpoints
 #import prediction as pred 
 #import segmentation_models.segmentation_models as sm 
@@ -19,7 +19,7 @@ The following code snippet provides the user with the flexibility of specifying 
 status of the encoder, and if Kalman filter should be used for lane prediction
 """
 parser = argparse.ArgumentParser(description='This script converts the input camera frames to lane masks')
-parser.add_argument('--backbone', type=str, default='inceptionresnet_v2',
+parser.add_argument('--backbone', type=str, default='inceptionresnetv2',
                     help='Name of the backbone used for U-net')
 parser.add_argument('--encoder_frozen', type=bool, default=False,
                     help='Encoder frozen if True otherwise defrozen')
@@ -69,10 +69,7 @@ class LaneDetector(object):
 		self.bridge = CvBridge()
 
 		self.mask_pub = rospy.Publisher("mask_topic", Image)
-		self.image_sub = rospy.Subscriber("image_topic_2",Image,self.frame2mask)
-		self.world_coords = rospy.Publisher('chatter2', Float64MultiArray, queue_size=10)
-		self.three_D_points = rospy.Publisher("3Dpoints", worldpoints)
-		self.worldpoints = worldpoints()
+		self.image_sub = rospy.Subscriber("image_topic",Image,self.frame2mask)
 		self.kalman_flag = False
 
 	def frame2mask(self, data):
@@ -88,7 +85,7 @@ class LaneDetector(object):
 	    	print(e)
 		self.K, self.D = undistort.calibrate()#camera matrix and distortion matrix of the camera used for undistortion of frames
 		self.frame = undistort.undistort(self.frame, self.K, self.D)#frames undistorting
-		self.mask = self.model.prediction()
+		self.mask = self.model.prediction(self.frame)
 		self.nonzero = np.nonzero(self.mask)#stores nonzeros indices
 		if ( len(nonzero[0])!=0) & (len(nonzero[1])!=0 ):
 	    """
@@ -98,16 +95,14 @@ class LaneDetector(object):
 			self.kalman_flag = True
 		if ( self.kalman_flag == True && self.Kalman_filter == True ):
 			self.mask = K.converter(self.mask)
-		x , y = C.Points(self.mask)
-		self.worldpoints.x = x
-		self.worldpoints.y = y
 		#publishing the resuling mask to the topic
 		print('Publishing mask to topic /mask_topic')
 		self.mask_pub.publish(self.bridge.cv2_to_imgmsg(self.frame, "bgr8"))
-		self.three_D_points.publish(self.worldpoints)
+
 
 if __name__ == '__main__':
 	rospy.init_node('LaneDetector')
 	lane = LaneDetector()
 	lane.frame2mask()
+	rospy.spin()
 

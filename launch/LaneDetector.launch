@@ -1,0 +1,5 @@
+<launch>
+
+    <node name="LaneDetector" pkg="LaneDetection" type="main.py"/>
+
+</launch>
