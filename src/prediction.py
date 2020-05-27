@@ -10,7 +10,7 @@ import segmentation_models.segmentation_models as sm
 
 class Prediction(object):
 
-	def __init__(self, weights_path, backbone = 'inceptionresnetv2',  encoder_freeze=False, n_classes=4):
+	def __init__(self, weights_path, backbone = 'resnet50',  encoder_freeze=False, n_classes=4):
 		self.backbone = backbone
 		self.n_classes = n_classes # case for binary and multiclass segmentation
 		self.classes = ['Background', 'Lane', 'Segmented_lane', 'Zebra'] if self.n_classes == 4 else ['Background', 'Lane']
