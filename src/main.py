@@ -98,11 +98,20 @@ class LaneDetector(object):
 		#publishing the resuling mask to the topic
 		print('Publishing mask to topic /mask_topic')
 		self.mask_pub.publish(self.bridge.cv2_to_imgmsg(self.frame, "bgr8"))
+	def image2mask(self):
+		"""
+		This function takes in image from directory in repo and feeds to model(code-prediction.py)
+		"""
+		self.image = cv2.imread('./Test image/image.png')
+		self.mask = self.model.prediction(self.image)
+		cv2.imshow('predicted mask', self.mask)
+		cv2.waitKey(0)
 
 
 if __name__ == '__main__':
 	rospy.init_node('LaneDetector')
 	lane = LaneDetector()
-	lane.frame2mask()
+	#lane.frame2mask()
+	lane.image2mask()
 	rospy.spin()
 
