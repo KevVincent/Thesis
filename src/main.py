@@ -12,8 +12,8 @@ import image_undistortion as undistort
 import Kalman as K
 
 from msg import worldpoints
-#import prediction as pred 
-#import segmentation_models.segmentation_models as sm 
+import prediction as pred 
+import segmentation_models.segmentation_models as sm 
 """
 The following code snippet provides the user with the flexibility of specifying parameters like path to weights,
 status of the encoder, and if Kalman filter should be used for lane prediction
